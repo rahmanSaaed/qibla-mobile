@@ -1,22 +1,42 @@
 {
   "expo": {
-    "name": "qibla-mobile",
+    "name": "القبلة",
     "slug": "qibla-mobile",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "qiblamobile",
-    "userInterfaceStyle": "automatic",
+    "scheme": "qibla",
+    "userInterfaceStyle": "dark",
+    "backgroundColor": "#0b3d2e",
     "ios": {
-      "icon": "./assets/expo.icon"
+      "bundleIdentifier": "com.abdulrahman.qibla",
+      "supportsTablet": false,
+      "infoPlist": {
+        "ExpoLocalization_forcesRTL": true,
+        "CFBundleLocalizations": [
+          "ar"
+        ]
+      }
     },
     "android": {
+      "package": "com.abdulrahman.qibla",
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#0b3d2e",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
+      "permissions": [
+        "SCHEDULE_EXACT_ALARM",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION"
+      ],
+      "blockedPermissions": [
+        "android.permission.ACCESS_BACKGROUND_LOCATION",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.SYSTEM_ALERT_WINDOW"
+      ],
       "predictiveBackGestureEnabled": false
     },
     "web": {
@@ -28,15 +48,83 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#208AEF",
+          "backgroundColor": "#0b3d2e",
           "image": "./assets/images/splash-icon.png",
-          "imageWidth": 76
+          "imageWidth": 120
+        }
+      ],
+      [
+        "expo-font",
+        {
+          "fonts": [
+            "./node_modules/@expo-google-fonts/cairo/400Regular/Cairo_400Regular.ttf",
+            "./node_modules/@expo-google-fonts/cairo/600SemiBold/Cairo_600SemiBold.ttf",
+            "./node_modules/@expo-google-fonts/cairo/700Bold/Cairo_700Bold.ttf",
+            "./node_modules/@expo-google-fonts/cairo/800ExtraBold/Cairo_800ExtraBold.ttf"
+          ]
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "يستخدم التطبيق موقعك لحساب اتجاه القبلة ومواقيت الصلاة."
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/notification-icon.png",
+          "color": "#d4af37",
+          "sounds": [
+            "./assets/sounds/adhan_full.ogg",
+            "./assets/sounds/adhan_short.ogg"
+          ]
+        }
+      ],
+      "expo-background-task",
+      [
+        "expo-localization",
+        {
+          "supportedLocales": [
+            "ar"
+          ],
+          "forcesRTL": true
+        }
+      ],
+      [
+        "react-native-android-widget",
+        {
+          "fonts": [
+            "./node_modules/@expo-google-fonts/cairo/400Regular/Cairo_400Regular.ttf",
+            "./node_modules/@expo-google-fonts/cairo/600SemiBold/Cairo_600SemiBold.ttf",
+            "./node_modules/@expo-google-fonts/cairo/700Bold/Cairo_700Bold.ttf",
+            "./node_modules/@expo-google-fonts/cairo/800ExtraBold/Cairo_800ExtraBold.ttf"
+          ],
+          "widgets": [
+            {
+              "name": "NextPrayer",
+              "label": "الصلاة القادمة",
+              "description": "الصلاة القادمة ومواقيت اليوم",
+              "minWidth": "250dp",
+              "minHeight": "110dp",
+              "targetCellWidth": 4,
+              "targetCellHeight": 2,
+              "resizeMode": "horizontal|vertical",
+              "updatePeriodMillis": 1800000
+            }
+          ]
         }
       ]
     ],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "6a06db48-1c9a-4d54-b1b7-84b78f30a88d"
+      }
     }
   }
 }

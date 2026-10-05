@@ -1,98 +1,146 @@
-import * as Device from 'expo-device';
-import { Platform, StyleSheet } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useFocusEffect } from "expo-router";
+import { useCallback } from "react";
+import { StyleSheet, View } from "react-native";
 
-import { AnimatedIcon } from '@/components/animated-icon';
-import { HintRow } from '@/components/hint-row';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { WebBadge } from '@/components/web-badge';
-import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
+import { Compass, isAligned } from "@/components/Compass";
+import { LocationPicker } from "@/components/LocationPicker";
+import { AppText, Button, Card, Header, Screen } from "@/components/ui";
+import { Colors, Spacing } from "@/constants/theme";
+import { useCompass } from "@/hooks/useCompass";
+import { useLocation } from "@/hooks/useLocation";
+import { formatNumber } from "@/lib/format";
+import { distanceToKaabaKm, qiblaBearing } from "@/lib/qibla";
 
-function getDevMenuHint() {
-  if (Platform.OS === 'web') {
-    return <ThemedText type="small">use browser devtools</ThemedText>;
-  }
-  if (Device.isDevice) {
-    return (
-      <ThemedText type="small">
-        shake device or press <ThemedText type="code">m</ThemedText> in terminal
-      </ThemedText>
-    );
-  }
-  const shortcut = Platform.OS === 'android' ? 'cmd+m (or ctrl+m)' : 'cmd+d';
-  return (
-    <ThemedText type="small">
-      press <ThemedText type="code">{shortcut}</ThemedText>
-    </ThemedText>
+export default function QiblaScreen() {
+  const loc = useLocation();
+  const compass = useCompass();
+  const { startIfPermitted, pause } = compass;
+
+  // The magnetometer drains battery, so only listen while this tab is visible.
+  useFocusEffect(
+    useCallback(() => {
+      startIfPermitted();
+      return pause;
+    }, [startIfPermitted, pause]),
   );
-}
 
-export default function HomeScreen() {
+  const qibla = loc.location
+    ? {
+        bearing: qiblaBearing(loc.location.lat, loc.location.lng),
+        distanceKm: distanceToKaabaKm(loc.location.lat, loc.location.lng),
+      }
+    : null;
+  const aligned = qibla ? isAligned(qibla.bearing, compass.heading) : false;
+
   return (
-    <ThemedView style={styles.container}>
-      <SafeAreaView style={styles.safeArea}>
-        <ThemedView style={styles.heroSection}>
-          <AnimatedIcon />
-          <ThemedText type="title" style={styles.title}>
-            Welcome to&nbsp;Expo
-          </ThemedText>
-        </ThemedView>
+    <Screen>
+      <Header title="اتجاه القبلة" subtitle="﴿فَوَلِّ وَجْهَكَ شَطْرَ الْمَسْجِدِ الْحَرَامِ﴾" />
 
-        <ThemedText type="code" style={styles.code}>
-          get started
-        </ThemedText>
+      {!loc.location ? (
+        <AppText style={styles.centered}>حدّد موقعك أو اختر مدينتك لحساب اتجاه القبلة.</AppText>
+      ) : null}
 
-        <ThemedView type="backgroundElement" style={styles.stepContainer}>
-          <HintRow
-            title="Try editing"
-            hint={<ThemedText type="code">src/app/index.tsx</ThemedText>}
+      {qibla ? (
+        <>
+          <Compass
+            bearing={qibla.bearing}
+            heading={compass.heading}
+            continuousHeading={compass.continuousHeading}
           />
-          <HintRow title="Dev tools" hint={getDevMenuHint()} />
-          <HintRow
-            title="Fresh start"
-            hint={<ThemedText type="code">npm run reset-project</ThemedText>}
-          />
-        </ThemedView>
 
-        {Platform.OS === 'web' && <WebBadge />}
-      </SafeAreaView>
-    </ThemedView>
+          <AppText weight="bold" style={[styles.status, aligned && { color: Colors.success }]}>
+            {compass.status === "active"
+              ? aligned
+                ? "أنت الآن في اتجاه القبلة"
+                : "أدِر الهاتف حتى يصل رمز الكعبة إلى المؤشر"
+              : "اتجاه القبلة بالنسبة للشمال الحقيقي"}
+          </AppText>
+
+          <View style={styles.stats}>
+            <Card style={styles.stat}>
+              <AppText style={styles.statLabel}>زاوية القبلة</AppText>
+              <AppText weight="bold" style={styles.statValue}>
+                {formatNumber(qibla.bearing, 1)}°
+              </AppText>
+            </Card>
+            <Card style={styles.stat}>
+              <AppText style={styles.statLabel}>المسافة إلى مكة</AppText>
+              <AppText weight="bold" style={styles.statValue}>
+                {formatNumber(qibla.distanceKm)} كم
+              </AppText>
+            </Card>
+          </View>
+
+          {compass.status !== "active" ? (
+            <View style={styles.compassActions}>
+              <View style={styles.row}>
+                <Button title="تفعيل البوصلة" onPress={compass.start} />
+              </View>
+              {compass.status === "denied" ? (
+                <AppText style={[styles.hint, { color: Colors.error }]}>
+                  البوصلة تحتاج إذن الموقع لتحديد الشمال الحقيقي. فعّله من إعدادات الهاتف.
+                </AppText>
+              ) : null}
+              {compass.status === "unsupported" ? (
+                <AppText style={styles.hint}>
+                  هاتفك لا يحتوي على حساس بوصلة. وجّه حرف «ش» إلى الشمال وستجد القبلة عند رمز الكعبة.
+                </AppText>
+              ) : null}
+            </View>
+          ) : compass.lowAccuracy ? (
+            <AppText style={[styles.hint, { color: Colors.gold }]}>
+              دقة البوصلة منخفضة: حرّك الهاتف في الهواء على شكل الرقم ٨ عدة مرات لمعايرتها.
+            </AppText>
+          ) : (
+            <AppText style={styles.hint}>
+              للحصول على دقة أفضل: ضع الهاتف مستويًا وابتعد عن المعادن والأجهزة الكهربائية.
+            </AppText>
+          )}
+        </>
+      ) : null}
+
+      <LocationPicker {...loc} />
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    flexDirection: 'row',
+  centered: {
+    textAlign: "center",
+    color: Colors.muted,
   },
-  safeArea: {
-    flex: 1,
-    paddingHorizontal: Spacing.four,
-    alignItems: 'center',
+  status: {
+    fontSize: 18,
+    textAlign: "center",
+  },
+  stats: {
+    flexDirection: "row",
     gap: Spacing.three,
-    paddingBottom: BottomTabInset + Spacing.three,
-    maxWidth: MaxContentWidth,
   },
-  heroSection: {
-    alignItems: 'center',
-    justifyContent: 'center',
+  stat: {
     flex: 1,
-    paddingHorizontal: Spacing.four,
-    gap: Spacing.four,
+    alignItems: "center",
+    gap: Spacing.half,
+    padding: Spacing.three,
   },
-  title: {
-    textAlign: 'center',
+  statLabel: {
+    fontSize: 12,
+    color: Colors.faint,
+    textAlign: "center",
   },
-  code: {
-    textTransform: 'uppercase',
+  statValue: {
+    fontSize: 20,
+    textAlign: "center",
   },
-  stepContainer: {
-    gap: Spacing.three,
-    alignSelf: 'stretch',
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.four,
-    borderRadius: Spacing.four,
+  compassActions: {
+    gap: Spacing.two,
+  },
+  row: {
+    flexDirection: "row",
+  },
+  hint: {
+    fontSize: 13,
+    color: Colors.faint,
+    textAlign: "center",
   },
 });

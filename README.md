@@ -1,56 +1,58 @@
-# Welcome to your Expo app 👋
+# القبلة — Android app
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+The mobile version of `../qibla-app`: Qibla compass, prayer times, adhan notifications and a
+home-screen widget. Built with Expo (SDK 57) and Expo Router; Arabic, right-to-left.
 
-## Get started
+Unlike the web app, everything runs on the phone: prayer times are calculated offline with
+[`adhan`](https://github.com/batoulapps/adhan-js), so the only network call is naming the
+city for a GPS position (Nominatim).
 
-1. Install dependencies
+## Run it
 
-   ```bash
-   npm install
-   ```
+The app uses native modules (widget, custom notification sounds, background task), so it
+needs a **development build**; Expo Go won't work.
 
-2. Start the app
-
-   ```bash
-   npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
-
-```bash
-npm run reset-project
+```sh
+npm install
+npx eas-cli@latest login
+npm run build:android:dev      # cloud build; install the APK it links to on your phone
+npm start                      # then open the installed app, it connects to this server
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+With Android Studio installed you can build locally instead: `npm run android`.
 
-### Other setup steps
+For a standalone APK to share with testers: `npm run build:android:preview`.
 
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
+## Checks
 
-## Learn more
+```sh
+npm run typecheck
+npm run lint
+npm test
+npm run verify:times   # compares calculated times with the Aladhan API the web app uses
+```
 
-To learn more about developing your project with Expo, look at the following resources:
+## Where things live
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+| Path | What |
+| --- | --- |
+| `src/app/` | Screens: Qibla (`index`), `prayer-times`, `settings` |
+| `src/lib/qibla.ts`, `locations.ts`, `prayer.ts` | Copied from the web app |
+| `src/lib/prayerCalc.ts` | Offline prayer times; maps the web app's Aladhan method IDs to `adhan` |
+| `src/lib/notifications.ts` | Notification channels (one per adhan sound) and the 7-day schedule |
+| `src/lib/backgroundRefresh.ts` | Tops up the schedule and redraws the widget twice a day |
+| `src/widgets/` | Home-screen widget |
+| `scripts/generate-icons.mjs` | Draws the app icons (`npm run icons`) |
 
-## Join the community
+Storage keys (`last-location`, `prayer-method`) match the web app's `localStorage` keys.
 
-Join our community of developers creating universal apps.
+## Adhan recordings
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+Both are public domain (CC0) from Wikimedia Commons:
+
+- `assets/sounds/adhan_full.ogg` — [Beautiful adhan.ogg](https://commons.wikimedia.org/wiki/File:Beautiful_adhan.ogg)
+- `assets/sounds/adhan_short.ogg` — [Adhan.ogg](https://commons.wikimedia.org/wiki/File:Adhan.ogg)
+
+To use a different recording, replace the file (keep the name) and rebuild. Android fixes a
+notification channel's sound when it's created, so also bump the channel IDs in
+`src/lib/notifications.ts` (e.g. `adhan-full-v1` → `adhan-full-v2`).
